@@ -1,0 +1,17 @@
+{
+  "name": "dslogger",
+  "version": "0.1.0",
+  "description": "Dead simple logger",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "logger"
+  ],
+  "author": "justan",
+  "license": "MIT",
+  "engines": {
+    "node": ">=6.0.0"
+  }
+}
