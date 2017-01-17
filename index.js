@@ -28,7 +28,7 @@ class Logger {
   get log() {
     return this.info
   }
-  
+
   /**
    * Set log level.
    * Available log levels are: 'debug', 'info', 'warn', 'error'
@@ -39,22 +39,22 @@ class Logger {
   }
 
   /**
-   * Change prefix of log. 
-   * Available field are: 
+   * Change prefix of log.
+   * Available field are:
    *  level: '%l, %level'; time: '%t, %time'; fileName: '%f, %file'; lineNumber: '%line'; columnNumber: '%c, %column'
    * @param {String} prefix
    */
   setPrefix(prefix) {
     this.prefix = prefix
   }
-  
+
   /**
-   * Print the log. 
+   * Print the log.
    */
   print(level, msg, ...args) {
     const loggerLevelIndex = levels.indexOf(this.level || 'debug')
     const thisLevelIndex = levels.indexOf(level)
-    
+
     const now = new Date()
     const timeStr = now.toLocaleString()
 
@@ -81,7 +81,7 @@ class Logger {
 
   /**
    * Extra info
-   * @param {Function} [belowFn] 
+   * @param {Function} [belowFn]
    * @return {Object}
    */
   static getExtraInfo(belowFn) {
@@ -113,5 +113,10 @@ class Logger {
     return levels
   }
 }
+
+/**
+ * singleton logger
+ */
+Logger.logger = new Logger
 
 module.exports = Logger
