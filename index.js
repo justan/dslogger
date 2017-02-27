@@ -5,6 +5,14 @@ const pt = require('path')
 
 const levels = ['debug', 'info', 'warn', 'error']
 
+function prefixInteger(num, length) {
+  return (num / Math.pow(10, length)).toFixed(length).substr(2);
+}
+
+function prefix0 (num) {
+  return prefixInteger(num, 2)
+}
+
 class Logger {
   constructor (opts) {
     opts = opts || {}
@@ -56,7 +64,7 @@ class Logger {
     const thisLevelIndex = levels.indexOf(level)
 
     const now = new Date()
-    const timeStr = now.toLocaleString()
+    const timeStr = `${now.getFullYear()}-${prefix0(now.getMonth() + 1)}-${prefix0(now.getDate())} ${prefix0(now.getHours())}:${prefix0(now.getMinutes())}:${prefix0(now.getSeconds())}`
 
     if(thisLevelIndex >= loggerLevelIndex) {
       const extra = Logger.getExtraInfo(this[level])
