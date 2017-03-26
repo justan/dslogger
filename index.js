@@ -2,6 +2,7 @@
  * Dead simple logger for nodejs
  */
 const pt = require('path')
+const util = require('util')
 
 const levels = ['debug', 'info', 'warn', 'error']
 
@@ -18,7 +19,7 @@ class Logger {
     opts = opts || {}
     Object.assign(this, opts)
     //default prefix is '[%t] [%l] [%f %line]: '
-    this.prefix = this.prefix || '[%time] [%level] [%file %line]: '
+    this.prefix = this.prefix || '[%time][%level][%file %line]: '
   }
   debug() {
     return this.print('debug', ...arguments)
@@ -76,6 +77,10 @@ class Logger {
         .replace(/%(?:line)\b/g, extra.lineNumber)
         .replace(/%(?:column|c)\b/g, extra.columnNumber)
 
+      if(typeof msg !== 'string') {
+        msg = util.inspect(msg)
+      }
+
       return this.doPrint(level, `${prefix}${msg}`, ...args)
     }
   }
@@ -84,7 +89,7 @@ class Logger {
    * Print method. You can overwrite this method to do custom print
    */
   doPrint(level, ...args) {
-    return console.log(...args)
+    return console[level](...args)
   }
 
   /**
