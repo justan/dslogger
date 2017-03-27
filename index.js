@@ -89,7 +89,8 @@ class Logger {
    * Print method. You can overwrite this method to do custom print
    */
   doPrint(level, ...args) {
-    return console[level](...args)
+    let consoleMethod = level == 'debug' ? 'info' : level
+    return console[consoleMethod](...args)
   }
 
   /**
