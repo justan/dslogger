@@ -35,10 +35,11 @@ const logger = new Logger()
 
 Avaliable log levels are: 'debug', 'info', 'warn', 'error'
 
-### logger.setPrefix( prefix )
+### logger.setType( type, format )
 
 ```js
-logger.setPrefix('[%t] [%l] [%f %line:%c]: ')
+logger.setType('plain', '[%t] [%l] [%f %line:%c]: ')
+logger.setType('json')
 ```
 
 Available field are: 
