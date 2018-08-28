@@ -154,7 +154,7 @@ class Logger {
         message = Object.assign({}, format, fields)
 
         if (restMsg) {
-          message.msg = `${message.msg || ''}${restMsg}`
+          message.msg = `${message.msg || ''} ${restMsg}`
         }
 
         message = JSON.stringify(message)
@@ -168,7 +168,7 @@ class Logger {
         }
 
         if (restMsg) {
-          message = `${message || ''}${restMsg}`
+          message = `${message || ''} ${restMsg}`
         }
 
         message = format.replace(/%(?:msg)\b/, message)
