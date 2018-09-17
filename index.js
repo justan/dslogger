@@ -27,12 +27,14 @@ class Logger {
    * @param {Object|String} opts.format
    *    Available field are:
    *     level: '%l, %level'; time: '%t, %time'; fileName: '%f, %file'; lineNumber: '%line'; columnNumber: '%c, %column'; pid: '%pid';
+   * @param {Function} opts.formater format log custom
    */
   constructor(opts) {
     opts = opts || {}
-    const { level, defaults, type = 'plain', format } = opts
+    const { level, defaults, type = 'plain', format, formater = this._defaultFormater } = opts
 
     this.setType(type, format)
+    this.setFormater(formater)
 
     this.level = level
     this.defaults = defaults
@@ -44,6 +46,8 @@ class Logger {
     if (!this._level) {
       this.setLevel(level || 'debug')
     }
+
+    this._hostname = os.hostname()
   }
   debug() {
     return this.print('debug', ...arguments)
@@ -94,7 +98,7 @@ class Logger {
         fileline: '%file %line',
         level: '%level',
         pid: '%pid',
-        hostname: os.hostname()
+        hostname: '%hostname'
       }
     } else {
       this.type = 'plain'
@@ -102,13 +106,84 @@ class Logger {
     }
   }
 
+  setFormater(formater) {
+    if(typeof formater === 'function') {
+      this.formater = formater
+    }else {
+      throw new TypeError('formater must be a function')
+    }
+  }
+
+  objectFormater(message) {
+    let fields = {}
+    // error
+    if (message instanceof Error) {
+      let err = { message: message.message, name: message.name, stack: message.stack }
+      fields = { err, msg: err.message }
+    } else if (Array.isArray(message)) {
+      fields = { msg: util.inspect(message, { breakLength: Infinity }) }
+    } else if (Object(message) === message) {
+      fields = message
+    }else {
+      fields = { msg: message }
+    }
+
+    return fields
+  }
+
+  // default formater
+  _defaultFormater(message, ...args) {    
+    // 附加日志参数
+    let restMsg = args.reduce((restMsg, x) => {
+      let str = x
+      
+      if (typeof x === 'string') {
+        str = x
+      } else {
+        str = util.inspect(x, {
+          breakLength: Infinity
+        })
+      }
+      if (restMsg) {
+        restMsg = `${restMsg} ${str}`
+      } else {
+        restMsg = str
+      }
+      return restMsg
+    }, '')
+
+    let msg = ''
+    if(this.type === 'json') {
+      let fields = this.objectFormater(message, ...args)
+
+      msg = fields.msg
+      
+      if (restMsg) {
+        fields.msg = `${msg ? (msg + ' ') : ''}${restMsg}`
+      }
+
+      msg = util.inspect(Object.assign({}, this.format, fields), { breakLength: Infinity })
+    }else {
+      if (typeof message !== 'string') {
+        msg = util.inspect(message, {
+          breakLength: Infinity
+        })
+      } else {
+        msg = message
+      }
+
+      if (restMsg) {
+        msg = `${msg || ''} ${restMsg}`
+      }
+      msg = this.format.replace(/%(?:msg)\b/, msg)
+    }
+    return msg
+  }
+
   /**
    * Print the log.
    */
   print(level, msg, ...args) {
-    const loggerLevelIndex = levels.indexOf(this.getLevel() || 'debug')
-    const thisLevelIndex = levels.indexOf(level)
-
     const now = new Date()
     const timeStr = `${now.getFullYear()}-${prefix0(
       now.getMonth() + 1
@@ -116,63 +191,9 @@ class Logger {
       now.getMinutes()
     )}:${prefix0(now.getSeconds())}.${now.getMilliseconds()}`
 
-    if (thisLevelIndex >= loggerLevelIndex) {
+    if (this.checkLevel(level)) {
       const extra = Logger.getExtraInfo(this[level])
-      let message = ''
-      const format = this.format
-
-      // 多余的日志参数
-      let restMsg = ''
-      args.forEach(x => {
-        let str = x
-        if (typeof x === 'string') {
-          str = x
-        } else {
-          str = util.inspect(x, {
-            breakLength: Infinity
-          })
-        }
-        if (restMsg) {
-          restMsg = `${restMsg} ${str}`
-        } else {
-          restMsg = str
-        }
-      })
-
-      if (this.type === 'json') {
-        let fields
-        if (msg instanceof Error) {
-          let err = { message: msg.message, name: msg.name, stack: msg.stack }
-          fields = { msg: msg.message, err }
-        } else if (Array.isArray(msg)) {
-          fields = { msg: util.inspect(msg, { breakLength: Infinity }) }
-        } else if (Object(msg) === msg) {
-          fields = msg
-        } else {
-          fields = { msg }
-        }
-        message = Object.assign({}, format, fields)
-
-        if (restMsg) {
-          message.msg = `${message.msg || ''} ${restMsg}`
-        }
-
-        message = JSON.stringify(message)
-      } else {
-        if (typeof msg !== 'string') {
-          message = util.inspect(msg, {
-            breakLength: Infinity
-          })
-        } else {
-          message = msg
-        }
-
-        if (restMsg) {
-          message = `${message || ''} ${restMsg}`
-        }
-
-        message = format.replace(/%(?:msg)\b/, message)
-      }
+      let message = this.formater(msg, ...args)
 
       message = message
         .replace(/%(?:level|l)\b/g, level)
@@ -181,6 +202,7 @@ class Logger {
         .replace(/%(?:line)\b/g, extra.lineNumber)
         .replace(/%(?:column|c)\b/g, extra.columnNumber)
         .replace(/%(?:pid)\b/g, process.pid)
+        .replace(/%(?:hostname)\b/g, this._hostname)
 
       return this.doPrint(level, message)
     }
@@ -192,6 +214,13 @@ class Logger {
   doPrint(level, ...args) {
     let consoleMethod = level == 'debug' ? 'info' : level
     return console[consoleMethod](...args)
+  }
+  
+  checkLevel(level) {
+    const loggerLevelIndex = levels.indexOf(this.getLevel() || 'debug')
+    const thisLevelIndex = levels.indexOf(level)
+
+    return thisLevelIndex >= loggerLevelIndex
   }
 
   /**
