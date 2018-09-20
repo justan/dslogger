@@ -1,10 +1,17 @@
+0.4.1
+-----
+
+- Added
+
+    - `.inpsectOptions` 
+
 0.4.0
 -----
 
 - Custom formater supported
 - Added
 
-    - `.setFormater`
+    - `.setFormater()`
     - `.objectFormater`
     
 
@@ -15,8 +22,8 @@
 
 - Rmoved
 
-    - `.setPrefix`
+    - `.setPrefix()`
 
 - Added
 
-    - `.setType`
+    - `.setType()`
