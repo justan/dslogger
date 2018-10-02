@@ -128,14 +128,23 @@ class Logger {
   objectFormater(message) {
     let fields = {}
     // error
-    if (message instanceof Error) {
-      let err = {
+    let error
+    if (message && (message.err instanceof Error)) {
+      error = message.err
+      fields = message
+    } else if (message instanceof Error) {
+      error = message
+      fields = { msg: error.message }
+    }
+    if (error) {
+      error = Object.assign({
         message: message.message,
         name: message.name,
-        stack: message.stack
-      }
-      fields = { err, msg: err.message }
-    } else if (Array.isArray(message)) {
+        stack: message.stack,
+        ...message
+      })
+      fields.err = error
+    }else  if (Array.isArray(message)) {
       fields = { msg: this.inspect(message) }
     } else if (Object(message) === message) {
       fields = message
@@ -175,7 +184,7 @@ class Logger {
         fields.msg = `${msg ? msg + ' ' : ''}${restMsg}`
       }
 
-      msg = this.inspect(Object.assign({}, this.format, fields))
+      msg = JSON.stringify(Object.assign({}, this.format, fields))
     } else {
       if (typeof message !== 'string') {
         msg = this.inspect(message)
