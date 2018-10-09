@@ -36,6 +36,7 @@ class Logger {
       defaults,
       type = 'plain',
       format,
+      streams = [],
       formater = this._defaultFormater
     } = opts
 
@@ -55,6 +56,7 @@ class Logger {
 
     this.inpsectOptions = { breakLength: Infinity, depth: 5 }
     this._hostname = os.hostname()
+    this.streams = streams
   }
   debug() {
     return this.print('debug', ...arguments)
@@ -100,13 +102,6 @@ class Logger {
   setType(type, format) {
     if (type === 'json') {
       this.type = 'json'
-      this.format = format || {
-        time: '%time',
-        fileline: '%file %line',
-        level: '%level',
-        pid: '%pid',
-        hostname: '%hostname'
-      }
     } else {
       this.type = 'plain'
       this.format = format || '[%time][%level][%file %line]: %msg'
@@ -156,7 +151,7 @@ class Logger {
   }
 
   // default formater
-  _defaultFormater(message, ...args) {
+  _defaultFormater(level, message, ...args) {
     // 附加日志参数
     let restMsg = args.reduce((restMsg, x) => {
       let str = x
@@ -173,7 +168,8 @@ class Logger {
       }
       return restMsg
     }, '')
-
+    
+    const extra = Logger.getExtraInfo(this[level])
     let msg = ''
     if (this.type === 'json') {
       let fields = this.objectFormater(message, ...args)
@@ -184,7 +180,13 @@ class Logger {
         fields.msg = `${msg ? msg + ' ' : ''}${restMsg}`
       }
 
-      msg = JSON.stringify(Object.assign({}, this.format, fields))
+      msg = JSON.stringify(Object.assign({
+        time: extra.time,
+        fileline: `${extra.file} ${extra.line}`,
+        level,
+        pid: extra.pid,
+        hostname: this._hostname
+      }, fields))
     } else {
       if (typeof message !== 'string') {
         msg = this.inspect(message)
@@ -196,6 +198,13 @@ class Logger {
         msg = `${msg || ''} ${restMsg}`
       }
       msg = this.format.replace(/%(?:msg)\b/, msg)
+        .replace(/%(?:level|l)\b/g, level)
+        .replace(/%(?:time|t)\b/g, extra.time)
+        .replace(/%(?:file|f)\b/g, extra.file)
+        .replace(/%(?:line)\b/g, extra.line)
+        .replace(/%(?:column|c)\b/g, extra.column)
+        .replace(/%(?:pid)\b/g, extra.pid)
+        .replace(/%(?:hostname)\b/g, this._hostname)
     }
     return msg
   }
@@ -204,25 +213,8 @@ class Logger {
    * Print the log.
    */
   print(level, msg, ...args) {
-    const now = new Date()
-    const timeStr = `${now.getFullYear()}-${prefix0(
-      now.getMonth() + 1
-    )}-${prefix0(now.getDate())} ${prefix0(now.getHours())}:${prefix0(
-      now.getMinutes()
-    )}:${prefix0(now.getSeconds())}.${now.getMilliseconds()}`
-
     if (this.checkLevel(level)) {
-      const extra = Logger.getExtraInfo(this[level])
-      let message = this.formater(msg, ...args)
-
-      message = message
-        .replace(/%(?:level|l)\b/g, level)
-        .replace(/%(?:time|t)\b/g, timeStr)
-        .replace(/%(?:file|f)\b/g, extra.fileName)
-        .replace(/%(?:line)\b/g, extra.lineNumber)
-        .replace(/%(?:column|c)\b/g, extra.columnNumber)
-        .replace(/%(?:pid)\b/g, process.pid)
-        .replace(/%(?:hostname)\b/g, this._hostname)
+      let message = this.formater(level, msg, ...args)
 
       return this.doPrint(level, message)
     }
@@ -231,13 +223,18 @@ class Logger {
   /**
    * Print method. You can overwrite this method to do custom print
    */
-  doPrint(level, ...args) {
-    let consoleMethod = level == 'debug' ? 'info' : level
-    return console[consoleMethod](...args)
+  doPrint(level, message) {
+    let consoleMethod = level == 'debug' ? 'info' : level    
+    this.streams.forEach(({ level:dlevel, stream }) => {
+      if (this.checkLevel(level, dlevel)) {
+        stream.write(message + '\n')
+      }
+    })
+    return console[consoleMethod](message)
   }
 
-  checkLevel(level) {
-    const loggerLevelIndex = levels.indexOf(this.getLevel() || 'debug')
+  checkLevel(level, dlevel) {
+    const loggerLevelIndex = levels.indexOf(dlevel || this.getLevel() || 'debug')
     const thisLevelIndex = levels.indexOf(level)
 
     return thisLevelIndex >= loggerLevelIndex
@@ -250,11 +247,20 @@ class Logger {
    */
   static getExtraInfo(belowFn) {
     const trace = this.getStack(belowFn)[0]
-    const fileName = pt.relative(process.cwd(), trace.getFileName())
+    const file = pt.relative(process.cwd(), trace.getFileName())
+    const now = new Date()
+    const timeStr = `${now.getFullYear()}-${prefix0(
+      now.getMonth() + 1
+    )}-${prefix0(now.getDate())} ${prefix0(now.getHours())}:${prefix0(
+      now.getMinutes()
+    )}:${prefix0(now.getSeconds())}.${now.getMilliseconds()}`
+
     return {
-      fileName: fileName,
-      lineNumber: trace.getLineNumber(),
-      columnNumber: trace.getColumnNumber()
+      file,
+      line: trace.getLineNumber(),
+      column: trace.getColumnNumber(),
+      time: timeStr,
+      pid: process.pid
     }
   }
   /**

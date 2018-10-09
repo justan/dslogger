@@ -1,8 +1,11 @@
 const assert = require('assert')
-const util = require('util')
 const dslogger = require('../')
+const fs = require('fs')
+const pt = require('path')
 
 const logger = dslogger.logger
+
+const _tmpFile = pt.join(__dirname, './log.log')
 
 const oldoutwrite = process.stdout.write
 const olderrwrite = process.stderr.write
@@ -31,5 +34,19 @@ var str1 = 'lala la'
 logger.log(message, str1)
 assert.ok(current.indexOf(message + ' ' + str1) > -1)
 
+logger.setType('json')
 
+logger.streams.push({
+    level: 'warn',
+    stream: fs.createWriteStream(_tmpFile, { flags: 'a', encoding: 'utf8' })
+})
+
+current = ''
+message = 'json message'
+logger.error(message)
+let log = JSON.parse(current)
+assert.equal(log.msg, message)
+assert.equal(log.pid, process.pid)
+
+fs.unlinkSync(_tmpFile)
 console.log('done')

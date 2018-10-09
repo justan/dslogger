@@ -1,3 +1,12 @@
+0.5.0
+-----
+
+- streams supported
+
+- Removed
+
+    - remove format for json
+
 0.4.1
 -----
 
