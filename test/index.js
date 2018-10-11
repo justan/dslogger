@@ -48,5 +48,19 @@ let log = JSON.parse(current)
 assert.equal(log.msg, message)
 assert.equal(log.pid, process.pid)
 
+current = ''
+message = new Error('custom error')
+message.code = 'ERR_CODE'
+logger.error(message, 'extra')
+log = JSON.parse(current)
+assert.equal(log.msg, 'custom error extra')
+assert.equal(log.err.code, message.code)
+current = ''
+logger.error({ err: message }, 'extra')
+log = JSON.parse(current)
+assert.equal(log.msg, 'custom error extra')
+assert.equal(log.err.code, message.code)
+
+
 fs.unlinkSync(_tmpFile)
 console.log('done')

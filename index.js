@@ -126,17 +126,17 @@ class Logger {
     let error
     if (message && (message.err instanceof Error)) {
       error = message.err
-      fields = message
+      fields = { msg: error.message, ...message }
     } else if (message instanceof Error) {
       error = message
       fields = { msg: error.message }
     }
     if (error) {
       error = Object.assign({
-        message: message.message,
-        name: message.name,
-        stack: message.stack,
-        ...message
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        ...error
       })
       fields.err = error
     }else  if (Array.isArray(message)) {
