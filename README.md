@@ -33,7 +33,7 @@ const logger = new Logger()
 
 ### logger.setLevel( level )
 
-Avaliable log levels are: 'debug', 'info', 'warn', 'error'
+Avaliable levels: 'debug', 'info', 'warn', 'error'
 
 ### logger.setType( type, format )
 
@@ -42,13 +42,15 @@ logger.setType('plain', '[%t] [%l] [%f %line:%c]: ')
 logger.setType('json')
 ```
 
-Available field are: 
+Available fields: 
 
 - level: %l, %level
 - time: %t, %time
 - fileName: %f, %file
 - lineNumber: %line
 - columnNumber: %c, %column
+- processId: %pid
+- hostname: %hostname
 
 ### logger.debug( msg )
 ### logger.info( msg )
