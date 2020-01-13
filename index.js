@@ -269,6 +269,8 @@ class Logger {
   static getStack(belowFn) {
     const v8Handler = Error.prepareStackTrace
     const dummyObject = {}
+    const stackTraceLimit = Error.stackTraceLimit
+    Error.stackTraceLimit = 1
 
     Error.prepareStackTrace = function(dummyObject, v8StackTrace) {
       return v8StackTrace
@@ -277,6 +279,7 @@ class Logger {
 
     const v8StackTrace = dummyObject.stack
 
+    Error.stackTraceLimit = stackTraceLimit
     Error.prepareStackTrace = v8Handler
 
     return v8StackTrace
